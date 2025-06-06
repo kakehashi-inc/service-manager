@@ -20,12 +20,12 @@ from typing import Dict, List, Optional
 class ServiceManager:
     """サービス管理ツール"""
 
-    def __init__(self, config_file: str = "config.json"):
+    def __init__(self, config_file: str):
         self.config_file = Path(config_file)
         self.config = self._load_config()
 
         # ディレクトリ設定を取得（設定ファイルの場所を基準とする）
-        config_dir = self.config_file.parent if self.config_file.parent != Path('.') else Path(__file__).parent
+        config_dir = self.config_file.parent if self.config_file.parent != Path(".") else Path(__file__).parent
 
         log_dir_config = self.config.get("directories", {}).get("logs", "logs")
         pids_dir_config = self.config.get("directories", {}).get("pids", "pids")
@@ -148,8 +148,6 @@ class ServiceManager:
         except Exception as e:
             print(f"Error finding process: {e}")
             return []
-
-
 
     def start_service(self, service_name: str) -> bool:
         """サービスを開始"""
@@ -599,11 +597,11 @@ class ServiceManager:
 
 def main():
     parser = argparse.ArgumentParser(description="Universal Service Manager")
-    parser.add_argument("--config", default="config.json", help="Config file path")
+    parser.add_argument("--config", help="Config file path (default: config.json)")
 
     subparsers = parser.add_subparsers(dest="action", help="Available actions")
 
-    # 単体サービス制御グループ (--all オプション有り)
+    # 単体サービス制御グループ
     control_actions = ["start", "stop", "restart", "status"]
     for action in control_actions:
         subparser = subparsers.add_parser(action, help=f"{action.capitalize()} service")
@@ -611,7 +609,7 @@ def main():
         group.add_argument("service_name", nargs="?", help="Service name")
         group.add_argument("--all", action="store_true", help="Apply to all services")
 
-    # サービス定義管理グループ (--all オプション無し)
+    # サービス定義管理グループ
     management_actions = [("list", "List all services"), ("add", "Add new service"), ("modify", "Modify existing service"), ("delete", "Delete service")]
     for action, desc in management_actions:
         subparser = subparsers.add_parser(action, help=desc)
@@ -620,11 +618,22 @@ def main():
 
     args = parser.parse_args()
 
+    if args.config:
+        # 相対パスの場合はカレントディレクトリを基準とする
+        if not Path(args.config).is_absolute():
+            config_file = Path.cwd() / args.config
+        else:
+            # 絶対パスの場合はそのまま使用
+            config_file = Path(args.config)
+    else:
+        # 指定のない場合はプログラムのディレクトリにあるconfig.jsonを使用
+        config_file = Path(__file__).parent / "config.json"
+
     if not args.action:
         parser.print_help()
         sys.exit(1)
 
-    manager = ServiceManager(args.config)
+    manager = ServiceManager(config_file)
 
     # アクション実行
     if args.action == "start":
