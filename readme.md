@@ -96,6 +96,11 @@ python3 service-manage.py
 
 ```json
 {
+  "log_retention_days": 7,
+  "directories": {
+    "logs": "logs",
+    "pids": "pids"
+  },
   "services": {
     "my-service": {
       "command": "python3",
@@ -120,19 +125,47 @@ python3 service-manage.py
 
 ### 設定項目
 
+#### グローバル設定
+
+| 項目 | 説明 | デフォルト値 |
+|------|------|------------|
+| `log_retention_days` | 保持するログファイル数 | 7 |
+| `directories.logs` | ログディレクトリのパス | "logs" |
+| `directories.pids` | PIDディレクトリのパス | "pids" |
+
+#### サービス設定
+
 | 項目 | 説明 | 必須 |
 |------|------|------|
 | `command` | 実行するコマンド | ✓ |
 | `args` | コマンドライン引数のリスト | |
-| `cwd` | 作業ディレクトリ（デフォルト: "."） | |
+| `cwd` | 作業ディレクトリ | |
 | `env` | 環境変数の辞書 | |
 
 ## ログ管理
 
 - ログファイルは`logs/`ディレクトリに自動生成されます
-- ファイル名: `<service_name>.log`
+- ファイル名: `<service_name>-YYYY-MM-DD.log`（日付ごとに分割）
 - サービス開始時に日時とともにログエントリが追加されます
-- `status`コマンドで最新5行のログが表示されます
+- 同一日での複数回起動は同じファイルに追記されます
+- 古いログファイルは自動削除されます（デフォルト: 7ファイル分を保持）
+
+### ログ保持期間の設定
+
+config.jsonで保持するログファイル数を設定できます：
+
+```json
+{
+  "log_retention_days": 10,
+  "directories": {
+    "logs": "logs",
+    "pids": "pids"
+  },
+  "services": {
+    ...
+  }
+}
+```
 
 ## 使用例
 

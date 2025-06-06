@@ -45,6 +45,9 @@ class ServiceManager:
         self.log_dir.mkdir(exist_ok=True)
         self.pids_dir.mkdir(exist_ok=True)
 
+        # 古いログファイルをクリーンアップ
+        self._cleanup_old_logs()
+
     def _load_config(self) -> Dict:
         """設定ファイルを読み込み"""
         if not self.config_file.exists():
@@ -106,6 +109,39 @@ class ServiceManager:
             return True
         except (OSError, ProcessLookupError):
             return False
+
+    def _cleanup_old_logs(self) -> None:
+        """古いログファイルを削除"""
+        # 保持する日数を設定から取得（デフォルト: 7日分）
+        retention_days = self.config.get("log_retention_days", 7)
+
+        services = self.config.get("services", {})
+        if not services:
+            return
+
+        for service_name in services.keys():
+            # サービスごとのログファイルを取得
+            log_pattern = f"{service_name}-*.log"
+            log_files = list(self.log_dir.glob(log_pattern))
+
+            if len(log_files) <= retention_days:
+                continue  # 保持日数以下の場合はスキップ
+
+            # ファイル名でソート（日付順）
+            log_files.sort()
+
+            # 古いファイルを削除（最新のretention_days個を残す）
+            files_to_delete = log_files[:-retention_days]
+            deleted_count = 0
+            for log_file in files_to_delete:
+                try:
+                    log_file.unlink()
+                    deleted_count += 1
+                except OSError as e:
+                    print(f"Warning: Failed to delete log file {log_file}: {e}")
+
+            if deleted_count > 0:
+                print(f"Cleaned up {deleted_count} old log file(s) for service '{service_name}'")
 
     def _find_process_by_command(self, command: str, args: List[str]) -> List[int]:
         """コマンドライン内容でプロセスを検索"""
@@ -178,8 +214,9 @@ class ServiceManager:
         # 作業ディレクトリ
         cwd = config.get("cwd")
 
-        # ログファイルパス
-        log_file = self.log_dir / f"{service_name}.log"
+        # ログファイルパス（日付付き）
+        today = time.strftime("%Y-%m-%d")
+        log_file = self.log_dir / f"{service_name}-{today}.log"
 
         print(f"Starting service '{service_name}'...")
         print(f"Command: {command} {' '.join(args)}")
