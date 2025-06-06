@@ -22,9 +22,28 @@ class ServiceManager:
 
     def __init__(self, config_file: str = "config.json"):
         self.config_file = Path(config_file)
-        self.log_dir = Path("logs")
-        self.log_dir.mkdir(exist_ok=True)
         self.config = self._load_config()
+
+        # ディレクトリ設定を取得（設定ファイルの場所を基準とする）
+        config_dir = self.config_file.parent if self.config_file.parent != Path('.') else Path(__file__).parent
+
+        log_dir_config = self.config.get("directories", {}).get("logs", "logs")
+        pids_dir_config = self.config.get("directories", {}).get("pids", "pids")
+
+        # 相対パスの場合は設定ファイルの場所を基準とする
+        if not Path(log_dir_config).is_absolute():
+            self.log_dir = config_dir / log_dir_config
+        else:
+            self.log_dir = Path(log_dir_config)
+
+        if not Path(pids_dir_config).is_absolute():
+            self.pids_dir = config_dir / pids_dir_config
+        else:
+            self.pids_dir = Path(pids_dir_config)
+
+        # ディレクトリを作成
+        self.log_dir.mkdir(exist_ok=True)
+        self.pids_dir.mkdir(exist_ok=True)
 
     def _load_config(self) -> Dict:
         """設定ファイルを読み込み"""
@@ -49,6 +68,44 @@ class ServiceManager:
     def _get_service_config(self, service_name: str) -> Optional[Dict]:
         """サービス設定を取得"""
         return self.config.get("services", {}).get(service_name)
+
+    def _save_pid(self, service_name: str, pid: int) -> None:
+        """pidファイルを保存"""
+        pid_file = self.pids_dir / f"{service_name}.pid"
+        try:
+            with open(pid_file, "w", encoding="utf-8") as f:
+                f.write(str(pid))
+        except IOError as e:
+            print(f"Warning: Failed to save PID file: {e}")
+
+    def _load_pid(self, service_name: str) -> Optional[int]:
+        """pidファイルを読み込み"""
+        pid_file = self.pids_dir / f"{service_name}.pid"
+        if not pid_file.exists():
+            return None
+
+        try:
+            with open(pid_file, "r", encoding="utf-8") as f:
+                return int(f.read().strip())
+        except (IOError, ValueError):
+            return None
+
+    def _delete_pid_file(self, service_name: str) -> None:
+        """pidファイルを削除"""
+        pid_file = self.pids_dir / f"{service_name}.pid"
+        try:
+            if pid_file.exists():
+                pid_file.unlink()
+        except IOError as e:
+            print(f"Warning: Failed to delete PID file: {e}")
+
+    def _is_process_running_by_pid(self, pid: int) -> bool:
+        """pidでプロセスが実行中かチェック"""
+        try:
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
 
     def _find_process_by_command(self, command: str, args: List[str]) -> List[int]:
         """コマンドライン内容でプロセスを検索"""
@@ -92,26 +149,7 @@ class ServiceManager:
             print(f"Error finding process: {e}")
             return []
 
-    def _is_process_running(self, pid: int) -> bool:
-        """プロセスが実行中かチェック"""
-        try:
-            os.kill(pid, 0)
-            return True
-        except (OSError, ProcessLookupError):
-            return False
 
-    def _get_log_tail(self, service_name: str, lines: int = 5) -> List[str]:
-        """ログファイルの末尾を取得"""
-        log_file = self.log_dir / f"{service_name}.log"
-        if not log_file.exists():
-            return ["No log file found"]
-
-        try:
-            with open(log_file, "r", encoding="utf-8") as f:
-                all_lines = f.readlines()
-                return [line.rstrip() for line in all_lines[-lines:]]
-        except IOError:
-            return ["Error reading log file"]
 
     def start_service(self, service_name: str) -> bool:
         """サービスを開始"""
@@ -120,14 +158,19 @@ class ServiceManager:
             print(f"Error: Service '{service_name}' not found in config.")
             return False
 
-        # 既に起動中かチェック
+        # サービス設定を取得
         command = config.get("command", "")
         args = config.get("args", [])
-        running_pids = self._find_process_by_command(command, args)
 
-        if running_pids:
-            print(f"Service '{service_name}' is already running (PID: {running_pids[0]})")
+        # 既に起動中かチェック
+        existing_pid = self._load_pid(service_name)
+        if existing_pid and self._is_process_running_by_pid(existing_pid):
+            print(f"Service '{service_name}' is already running (PID: {existing_pid})")
             return True
+        elif existing_pid:
+            # pidファイルはあるがプロセスが存在しない場合は古いpidファイルを削除
+            print(f"Removing stale PID file for '{service_name}' (PID: {existing_pid})")
+            self._delete_pid_file(service_name)
 
         # 環境変数設定
         env = os.environ.copy()
@@ -157,14 +200,14 @@ class ServiceManager:
             # 起動確認
             time.sleep(2)
             if process.poll() is None:
+                # プロセスが正常に開始された場合、pidファイルを保存
+                self._save_pid(service_name, process.pid)
                 print(f"Service '{service_name}' started successfully (PID: {process.pid})")
                 print(f"Log file: {log_file}")
+                print(f"PID file: {self.pids_dir / f'{service_name}.pid'}")
                 return True
             else:
                 print(f"Error: Service '{service_name}' failed to start")
-                print("Recent log entries:")
-                for line in self._get_log_tail(service_name, 3):
-                    print(f"  {line}")
                 return False
 
         except Exception as e:
@@ -178,50 +221,53 @@ class ServiceManager:
             print(f"Error: Service '{service_name}' not found in config.")
             return False
 
-        command = config.get("command", "")
-        args = config.get("args", [])
-        running_pids = self._find_process_by_command(command, args)
-
-        if not running_pids:
-            print(f"Service '{service_name}' is not running.")
+        # pidファイルからpidを取得
+        pid = self._load_pid(service_name)
+        if not pid:
+            print(f"Service '{service_name}' is not running (no PID file found).")
             return True
 
-        print(f"Stopping service '{service_name}' (PID: {running_pids[0]})...")
+        if not self._is_process_running_by_pid(pid):
+            print(f"Service '{service_name}' is not running (PID: {pid} not found).")
+            # 古いpidファイルを削除
+            self._delete_pid_file(service_name)
+            return True
 
-        # 各プロセスを停止
-        for pid in running_pids:
-            try:
-                # SIGTERM送信
+        print(f"Stopping service '{service_name}' (PID: {pid})...")
+
+        # プロセスを停止
+        try:
+            # SIGTERM送信
+            if sys.platform != "win32":
+                os.killpg(os.getpgid(pid), signal.SIGTERM)
+            else:
+                os.kill(pid, signal.SIGTERM)
+
+            # 終了確認（最大10秒）
+            for _ in range(10):
+                if not self._is_process_running_by_pid(pid):
+                    break
+                time.sleep(1)
+
+            # まだ生きている場合はSIGKILL
+            if self._is_process_running_by_pid(pid):
+                print(f"Force killing process {pid}...")
                 if sys.platform != "win32":
-                    os.killpg(os.getpgid(pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(pid), signal.SIGKILL)
                 else:
-                    os.kill(pid, signal.SIGTERM)
+                    os.kill(pid, signal.SIGKILL)
+                time.sleep(1)
 
-                # 終了確認（最大10秒）
-                for _ in range(10):
-                    if not self._is_process_running(pid):
-                        break
-                    time.sleep(1)
+        except (OSError, ProcessLookupError):
+            pass  # プロセスが既に終了している
 
-                # まだ生きている場合はSIGKILL
-                if self._is_process_running(pid):
-                    print(f"Force killing process {pid}...")
-                    if sys.platform != "win32":
-                        os.killpg(os.getpgid(pid), signal.SIGKILL)
-                    else:
-                        os.kill(pid, signal.SIGKILL)
-                    time.sleep(1)
-
-            except (OSError, ProcessLookupError):
-                pass  # プロセスが既に終了している
-
-        # 最終確認
-        remaining_pids = self._find_process_by_command(command, args)
-        if not remaining_pids:
+        # 最終確認とpidファイル削除
+        if not self._is_process_running_by_pid(pid):
+            self._delete_pid_file(service_name)
             print(f"Service '{service_name}' stopped successfully.")
             return True
         else:
-            print(f"Warning: Some processes may still be running: {remaining_pids}")
+            print(f"Warning: Process {pid} may still be running.")
             return False
 
     def restart_service(self, service_name: str) -> bool:
@@ -246,23 +292,16 @@ class ServiceManager:
             print(f"Service '{service_name}' not found in config.")
             return
 
-        command = config.get("command", "")
-        args = config.get("args", [])
-        running_pids = self._find_process_by_command(command, args)
-
-        print(f"Service: {service_name}")
-        print(f"Command: {command} {' '.join(args)}")
-
-        if running_pids:
-            print(f"Status: RUNNING (PID: {', '.join(map(str, running_pids))})")
+        # pidファイルから状態を確認
+        pid = self._load_pid(service_name)
+        if pid and self._is_process_running_by_pid(pid):
+            print(f"{service_name} RUNNING (PID: {pid})")
+        elif pid:
+            print(f"{service_name} STOPPED (stale PID file: {pid})")
+            # 古いpidファイルを削除
+            self._delete_pid_file(service_name)
         else:
-            print("Status: STOPPED")
-
-        # ログの末尾を表示
-        print("\nRecent log entries:")
-        log_entries = self._get_log_tail(service_name, 5)
-        for entry in log_entries:
-            print(f"  {entry}")
+            print(f"{service_name} STOPPED")
 
     def start_all_services(self) -> bool:
         """全サービスを開始"""
@@ -332,9 +371,18 @@ class ServiceManager:
         for name, config in services.items():
             command = config.get("command", "")
             args = config.get("args", [])
-            running_pids = self._find_process_by_command(command, args)
-            status = "RUNNING" if running_pids else "STOPPED"
-            print(f"  {name:<20} | {status:<8} | {command} {' '.join(args)}")
+
+            # pidファイルから状態を確認
+            pid = self._load_pid(name)
+            if pid and self._is_process_running_by_pid(pid):
+                status = f"RUNNING:{pid}"
+            else:
+                status = "STOPPED"
+                # 古いpidファイルがあれば削除
+                if pid:
+                    self._delete_pid_file(name)
+
+            print(f"  {name:<20} | {status:<12} | {command} {' '.join(args)}")
 
     def add_service(self, service_name: str) -> None:
         """サービスを追加"""
