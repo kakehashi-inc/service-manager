@@ -227,7 +227,7 @@ Environment variables (format: KEY=VALUE, empty line to finish):
 mcp-server-filesystem
 
 ```bash
-npx -y @modelcontextprotocol/server-filesystem /foo/bar/project"
+npx -y @modelcontextprotocol/server-filesystem /foo/bar/project
 ```
 
 stdio -> SSE
@@ -242,5 +242,5 @@ npx -y supergateway \
 SSE -> stdio
 
 ```bash
-npx -y supergateway --sse "http://localhost:8000/sse"
+npx -y supergateway --sse http://localhost:8000/sse
 ```
