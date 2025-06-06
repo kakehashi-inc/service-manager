@@ -438,9 +438,9 @@ class ServiceManager:
         # 作業ディレクトリ
         current_cwd = config.get("cwd", "")
         if current_cwd:
-            cwd = input(f"Working directory [{current_cwd}] (enter 'unset' to remove): ").strip()
+            cwd = input(f"Working directory [{current_cwd}] ('unset' to remove): ").strip()
         else:
-            cwd = input("Working directory (optional, enter 'unset' to skip): ").strip()
+            cwd = input("Working directory (optional): ").strip()
 
         if cwd == "unset":
             # unsetが指定された場合は設定を削除

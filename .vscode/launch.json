@@ -11,10 +11,10 @@
             "program": "service-manage.py",
             "console": "integratedTerminal",
             "args": [
-                "modify",
-                "test-service",
                 "--config",
-                "${workspaceFolder}/config-test.json"
+                "${workspaceFolder}/config-test.json",
+                "modify",
+                "test-service"
             ]
         },
         {
@@ -24,10 +24,10 @@
             "program": "service-manage.py",
             "console": "integratedTerminal",
             "args": [
-                "start",
-                "test-service",
                 "--config",
-                "${workspaceFolder}/config-test.json"
+                "${workspaceFolder}/config-test.json",
+                "start",
+                "test-service"
             ]
         },
         {
@@ -37,10 +37,10 @@
             "program": "service-manage.py",
             "console": "integratedTerminal",
             "args": [
-                "stop",
-                "test-service",
                 "--config",
-                "${workspaceFolder}/config-test.json"
+                "${workspaceFolder}/config-test.json",
+                "stop",
+                "test-service"
             ]
         }
     ]
