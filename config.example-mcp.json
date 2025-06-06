@@ -1,0 +1,64 @@
+{
+  "services": {
+    "filesystem-server": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/home/user/documents"
+      ],
+      "cwd": "/home/user/mcp-servers",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "github-server": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "cwd": "/home/user/mcp-servers",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token_here"
+      }
+    },
+    "postgres-server": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://user:pass@localhost/mydb"
+      ],
+      "cwd": "/home/user/mcp-servers",
+      "env": {
+        "DATABASE_URL": "postgresql://user:pass@localhost/mydb"
+      }
+    },
+    "web-server": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "http.server",
+        "8080"
+      ],
+      "cwd": "/home/user/website",
+      "env": {
+        "PYTHONPATH": "/home/user/website"
+      }
+    },
+    "custom-api": {
+      "command": "node",
+      "args": [
+        "app.js",
+        "--port",
+        "3000",
+        "--env",
+        "development"
+      ],
+      "cwd": "/home/user/my-api",
+      "env": {
+        "API_KEY": "your-secret-key",
+        "DEBUG": "true",
+        "PORT": "3000"
+      }
+    }
+  }
+}

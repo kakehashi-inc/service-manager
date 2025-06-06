@@ -174,9 +174,9 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  and can be added to the global gitignore or merged into this file. However, if you prefer,
 #  you could uncomment the following to ignore the enitre vscode folder
 # .vscode/
 
@@ -192,3 +192,51 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# macos,windows junk files
+.DS_Store
+._*
+.Trashes
+Thumbs.db
+Desktop.ini
+
+# production static files
+staticfiles/
+
+# Project files
+requirements.txt.md5
+
+# Node
+node_modules/
+
+# Yarn Berry
+#.yarn/*
+#!.yarn/patches
+#!.yarn/plugins
+#!.yarn/releases
+#!.yarn/sdks
+#!.yarn/versions
+.yarn
+
+# Swap the comments on the following lines if you don't wish to use zero-installs
+# Documentation here: https://yarnpkg.com/features/zero-installs
+#!.yarn/cache
+.pnp.*
+
+# Parcel
+.parcel-cache/
+
+# Storage
+media/
+
+# Etc
+*.cache.sqlite*
+*deploy*.sh
+/*.sql
+.specstory
+wget-log
+*.zip
+*.tar
+*.tar.*
+tmp/
+config.json

@@ -1,0 +1,21 @@
+{
+  "services": {
+    "project1": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--stdio",
+        "npx -y @modelcontextprotocol/server-filesystem /foo/bar/project1",
+        "--port",
+        "8000",
+        "--baseUrl",
+        "http://localhost:8000",
+        "--ssePath",
+        "/sse",
+        "--messagePath",
+        "/message"
+      ]
+    }
+  }
+}
