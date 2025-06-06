@@ -1,0 +1,47 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "modify test-service",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "service-manage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "modify",
+                "test-service",
+                "--config",
+                "${workspaceFolder}/config-test.json"
+            ]
+        },
+        {
+            "name": "start test-service",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "service-manage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "start",
+                "test-service",
+                "--config",
+                "${workspaceFolder}/config-test.json"
+            ]
+        },
+        {
+            "name": "stop test-service",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "service-manage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "stop",
+                "test-service",
+                "--config",
+                "${workspaceFolder}/config-test.json"
+            ]
+        }
+    ]
+}

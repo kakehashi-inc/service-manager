@@ -240,3 +240,4 @@ wget-log
 *.tar.*
 tmp/
 config.json
+logs/

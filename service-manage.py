@@ -135,7 +135,7 @@ class ServiceManager:
             env.update(config["env"])
 
         # 作業ディレクトリ
-        cwd = config.get("cwd", ".")
+        cwd = config.get("cwd", "")
 
         # ログファイルパス
         log_file = self.log_dir / f"{service_name}.log"
@@ -313,7 +313,7 @@ class ServiceManager:
             print("No services configured.")
             return
 
-        print(f"Status of all services:")
+        print("Status of all services:")
         for service_name in services:
             print(f"\n--- {service_name} ---")
             self.status_service(service_name)
@@ -361,7 +361,7 @@ class ServiceManager:
         print("Current configuration:")
         print(f"  Command: {current_config.get('command', '')}")
         print(f"  Args: {current_config.get('args', [])}")
-        print(f"  Working directory: {current_config.get('cwd', '.')}")
+        print(f"  Working directory: {current_config.get('cwd', '')}")
         print(f"  Environment variables: {current_config.get('env', {})}")
 
         config = self._interactive_service_config(current_config)
@@ -412,70 +412,139 @@ class ServiceManager:
             return self._interactive_service_config(current_config)
 
         # 引数入力
-        print("Arguments (enter empty line to finish):")
         args = []
         current_args = config.get("args", [])
 
         if current_args:
             print(f"Current args: {current_args}")
-            use_current = input("Keep current args? (Y/n): ").strip().lower()
-            if use_current != "n":
-                args = current_args
-            else:
-                while True:
-                    arg = input("  Arg: ").strip()
-                    if not arg:
-                        break
-                    args.append(arg)
+            modify_args = input("Modify arguments? (y/N/unset): ").strip().lower()
+            if modify_args == "unset":
+                # unsetが指定された場合は引数設定を削除
+                if "args" in config:
+                    del config["args"]
+            elif modify_args == "y":
+                args = self._interactive_args_config(current_args)
+                if args:
+                    config["args"] = args
+                elif "args" in config:
+                    del config["args"]  # 空になった場合は削除
         else:
-            while True:
-                arg = input("  Arg: ").strip()
-                if not arg:
-                    break
-                args.append(arg)
-
-        config["args"] = args
+            add_args = input("Add arguments? (y/N): ").strip().lower()
+            if add_args == "y":
+                args = self._interactive_args_config([])
+                if args:
+                    config["args"] = args
 
         # 作業ディレクトリ
-        current_cwd = config.get("cwd", ".")
-        cwd = input(f"Working directory [{current_cwd}]: ").strip()
-        if cwd:
+        current_cwd = config.get("cwd", "")
+        if current_cwd:
+            cwd = input(f"Working directory [{current_cwd}] (enter 'unset' to remove): ").strip()
+        else:
+            cwd = input("Working directory (optional, enter 'unset' to skip): ").strip()
+
+        if cwd == "unset":
+            # unsetが指定された場合は設定を削除
+            if "cwd" in config:
+                del config["cwd"]
+        elif cwd:
             config["cwd"] = cwd
-        elif "cwd" not in config:
-            config["cwd"] = "."
 
         # 環境変数
         current_env = config.get("env", {})
         if current_env:
             print(f"Current environment variables: {current_env}")
-            modify_env = input("Modify environment variables? (y/N): ").strip().lower()
-            if modify_env == "y":
-                config["env"] = self._interactive_env_config(current_env)
-            else:
-                config["env"] = current_env
+            modify_env = input("Modify environment variables? (y/N/unset): ").strip().lower()
+            if modify_env == "unset":
+                # unsetが指定された場合は環境変数設定を削除
+                if "env" in config:
+                    del config["env"]
+            elif modify_env == "y":
+                new_env = self._interactive_env_config(current_env)
+                if new_env:
+                    config["env"] = new_env
+                elif "env" in config:
+                    del config["env"]  # 空になった場合は削除
         else:
             add_env = input("Add environment variables? (y/N): ").strip().lower()
             if add_env == "y":
-                config["env"] = self._interactive_env_config({})
+                new_env = self._interactive_env_config({})
+                if new_env:
+                    config["env"] = new_env
 
         return config
+
+    def _interactive_args_config(self, current_args: List[str]) -> List[str]:
+        """引数の設定"""
+        args = current_args.copy()
+
+        print("Arguments:")
+        print("  Enter arguments one per line, 'unset <index>' to remove, empty line to finish")
+        if current_args:
+            print("  Current arguments:")
+            for i, arg in enumerate(current_args):
+                print(f"    {i}: {arg}")
+
+        while True:
+            arg_input = input("  Arg: ").strip()
+            if not arg_input:
+                break
+
+            if arg_input.startswith("unset "):
+                # 引数の削除
+                try:
+                    index = int(arg_input.split(" ", 1)[1])
+                    if 0 <= index < len(args):
+                        removed_arg = args.pop(index)
+                        print(f"  Removed: {index}: {removed_arg}")
+                        # インデックスを再表示
+                        print("  Current arguments:")
+                        for i, arg in enumerate(args):
+                            print(f"    {i}: {arg}")
+                    else:
+                        print(f"  Index {index} out of range")
+                except (ValueError, IndexError):
+                    print("  Invalid format. Use 'unset <index>'")
+            else:
+                # 引数の追加
+                args.append(arg_input)
+                print(f"  Added: {len(args)-1}: {arg_input}")
+
+        return args
 
     def _interactive_env_config(self, current_env: Dict) -> Dict:
         """環境変数の設定"""
         env = current_env.copy()
 
-        print("Environment variables (format: KEY=VALUE, empty line to finish):")
+        print("Environment variables:")
+        print("  Format: KEY=VALUE to set, KEY=unset to remove, empty line to finish")
+        if current_env:
+            print("  Current variables:")
+            for key, value in current_env.items():
+                print(f"    {key}={value}")
+
         while True:
             var = input("  Env var: ").strip()
             if not var:
                 break
 
             if "=" not in var:
-                print("  Invalid format. Use KEY=VALUE")
+                print("  Invalid format. Use KEY=VALUE or KEY=unset")
                 continue
 
             key, value = var.split("=", 1)
-            env[key.strip()] = value.strip()
+            key = key.strip()
+            value = value.strip()
+
+            if value.lower() == "unset":
+                # unsetが指定された場合は該当のキーを削除
+                if key in env:
+                    del env[key]
+                    print(f"  Removed: {key}")
+                else:
+                    print(f"  Key '{key}' not found")
+            else:
+                env[key] = value
+                print(f"  Set: {key}={value}")
 
         return env
 
