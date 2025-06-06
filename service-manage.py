@@ -488,15 +488,14 @@ class ServiceManager:
             for i, current_arg in enumerate(current_args):
                 new_arg = input(f"  Arg {i} [{current_arg}]: ").strip()
                 if new_arg == "unset":
-                    print(f"  Removed: {current_arg}")
                     # この引数をスキップ（argsに追加しない）
+                    pass
                 elif new_arg == "":
                     # 空入力の場合は現在の値を保持
                     args.append(current_arg)
                 else:
                     # 新しい値に変更
                     args.append(new_arg)
-                    print(f"  Changed: {current_arg} -> {new_arg}")
 
             print("\nAdd new arguments:")
         else:
@@ -546,7 +545,6 @@ class ServiceManager:
                     print(f"  Key '{key}' not found")
             else:
                 env[key] = value
-                print(f"  Set: {key}={value}")
 
         return env
 
