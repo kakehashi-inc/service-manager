@@ -475,39 +475,38 @@ class ServiceManager:
 
     def _interactive_args_config(self, current_args: List[str]) -> List[str]:
         """引数の設定"""
-        args = current_args.copy()
+        args = []
 
-        print("Arguments:")
-        print("  Enter arguments one per line, 'unset <index>' to remove, empty line to finish")
         if current_args:
-            print("  Current arguments:")
-            for i, arg in enumerate(current_args):
-                print(f"    {i}: {arg}")
+            # 既存引数の編集フェーズ
+            print("Edit existing arguments:")
+            print("  Enter new value to change, 'unset' to remove, empty line to keep current")
 
+            for i, current_arg in enumerate(current_args):
+                new_arg = input(f"  Arg {i} [{current_arg}]: ").strip()
+                if new_arg == "unset":
+                    print(f"  Removed: {current_arg}")
+                    # この引数をスキップ（argsに追加しない）
+                elif new_arg == "":
+                    # 空入力の場合は現在の値を保持
+                    args.append(current_arg)
+                else:
+                    # 新しい値に変更
+                    args.append(new_arg)
+                    print(f"  Changed: {current_arg} -> {new_arg}")
+
+            print("\nAdd new arguments:")
+        else:
+            # 新規作成の場合
+            print("Arguments:")
+
+        # 新規追加フェーズ
+        print("  Enter arguments one per line, empty line to finish")
         while True:
-            arg_input = input("  Arg: ").strip()
+            arg_input = input(f"  New arg {len(args)}: ").strip()
             if not arg_input:
                 break
-
-            if arg_input.startswith("unset "):
-                # 引数の削除
-                try:
-                    index = int(arg_input.split(" ", 1)[1])
-                    if 0 <= index < len(args):
-                        removed_arg = args.pop(index)
-                        print(f"  Removed: {index}: {removed_arg}")
-                        # インデックスを再表示
-                        print("  Current arguments:")
-                        for i, arg in enumerate(args):
-                            print(f"    {i}: {arg}")
-                    else:
-                        print(f"  Index {index} out of range")
-                except (ValueError, IndexError):
-                    print("  Invalid format. Use 'unset <index>'")
-            else:
-                # 引数の追加
-                args.append(arg_input)
-                print(f"  Added: {len(args)-1}: {arg_input}")
+            args.append(arg_input)
 
         return args
 
