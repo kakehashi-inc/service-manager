@@ -135,14 +135,17 @@ class ServiceManager:
             env.update(config["env"])
 
         # 作業ディレクトリ
-        cwd = config.get("cwd", "")
+        cwd = config.get("cwd")
 
         # ログファイルパス
         log_file = self.log_dir / f"{service_name}.log"
 
         print(f"Starting service '{service_name}'...")
         print(f"Command: {command} {' '.join(args)}")
-        print(f"Working directory: {cwd}")
+        if cwd:
+            print(f"Working directory: {cwd}")
+        else:
+            print("Working directory: (not set)")
 
         try:
             # プロセス起動
