@@ -20,7 +20,7 @@ from typing import Dict, List, Optional
 class ServiceManager:
     """サービス管理ツール"""
 
-    PROCESS_START_WAIT = 2
+    PROCESS_START_WAIT = 1
     PROCESS_KILL_WAIT = 5
     PROCESS_RESTART_WAIT = 1
     PROCESS_STOP_TIMEOUT = 10
@@ -237,21 +237,22 @@ class ServiceManager:
 
                 process = subprocess.Popen([command] + args, cwd=cwd, env=env, stdout=f, stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32")
 
-            # プロセス起動をしばらく待つ
+            # プロセスが起動できた場合はpidをファイルに保存
+            self._save_pid(service_name, process.pid)
+            print(f"Service '{service_name}' started successfully (PID: {process.pid})")
+            print(f"Log file: {log_file}")
+            print(f"PID file: {self.pids_dir / f'{service_name}.pid'}")
+
+            # プロセス起動をすこし待つ
             time.sleep(self.PROCESS_START_WAIT)
 
-            # 起動確認
-            if process.poll() is None:
-                # プロセスが正常に開始された場合、pidファイルを保存
-                self._save_pid(service_name, process.pid)
-                print(f"Service '{service_name}' started successfully (PID: {process.pid})")
-                print(f"Log file: {log_file}")
-                print(f"PID file: {self.pids_dir / f'{service_name}.pid'}")
-                return True
-            else:
-                # プロセスは既に終了してしまっている
-                print(f"Error: Service '{service_name}' failed to start")
+            # プロセスが終了してしまっていないかをチェック
+            if not self._is_process_running_by_pid(process.pid):
+                # 終了してしまったことを英語で表示
+                print(f"Service '{service_name}' terminated immediately after starting.")
                 return False
+
+            return True
 
         except Exception as e:
             print(f"Error starting service '{service_name}': {e}")
