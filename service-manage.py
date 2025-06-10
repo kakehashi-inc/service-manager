@@ -20,6 +20,11 @@ from typing import Dict, List, Optional
 class ServiceManager:
     """サービス管理ツール"""
 
+    PROCESS_START_WAIT = 2
+    PROCESS_KILL_WAIT = 5
+    PROCESS_RESTART_WAIT = 1
+    PROCESS_STOP_TIMEOUT = 10
+
     def __init__(self, config_file: str):
         self.config_file = Path(config_file)
         self.config = self._load_config()
@@ -232,8 +237,10 @@ class ServiceManager:
 
                 process = subprocess.Popen([command] + args, cwd=cwd, env=env, stdout=f, stderr=subprocess.STDOUT, start_new_session=sys.platform != "win32")
 
+            # プロセス起動をしばらく待つ
+            time.sleep(self.PROCESS_START_WAIT)
+
             # 起動確認
-            time.sleep(2)
             if process.poll() is None:
                 # プロセスが正常に開始された場合、pidファイルを保存
                 self._save_pid(service_name, process.pid)
@@ -242,6 +249,7 @@ class ServiceManager:
                 print(f"PID file: {self.pids_dir / f'{service_name}.pid'}")
                 return True
             else:
+                # プロセスは既に終了してしまっている
                 print(f"Error: Service '{service_name}' failed to start")
                 return False
 
@@ -278,8 +286,8 @@ class ServiceManager:
             else:
                 os.kill(pid, signal.SIGTERM)
 
-            # 終了確認（最大10秒）
-            for _ in range(10):
+            # 終了確認
+            for _ in range(self.PROCESS_STOP_TIMEOUT):
                 if not self._is_process_running_by_pid(pid):
                     break
                 time.sleep(1)
@@ -291,7 +299,7 @@ class ServiceManager:
                     os.killpg(os.getpgid(pid), signal.SIGKILL)
                 else:
                     os.kill(pid, signal.SIGKILL)
-                time.sleep(1)
+                time.sleep(self.PROCESS_KILL_WAIT)
 
         except (OSError, ProcessLookupError):
             pass  # プロセスが既に終了している
@@ -315,7 +323,7 @@ class ServiceManager:
             return False
 
         # 少し待機
-        time.sleep(1)
+        time.sleep(self.PROCESS_RESTART_WAIT)
 
         # 開始
         return self.start_service(service_name)
