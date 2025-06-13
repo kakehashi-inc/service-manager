@@ -240,5 +240,6 @@ wget-log
 *.tar.*
 tmp/
 config.json
+mcp*.json
 logs/
 pids/
