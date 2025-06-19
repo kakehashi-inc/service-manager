@@ -6,7 +6,7 @@
         "-y",
         "supergateway",
         "--stdio",
-        "npx -y @modelcontextprotocol/server-filesystem /home/yendo/Sources/laravel-projects/kakehashi_cube",
+        "npx -y @modelcontextprotocol/server-filesystem /home/yendo/Sources",
         "--port",
         "8503",
         "--baseUrl",
