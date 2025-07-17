@@ -4,9 +4,9 @@
       "command": "npx",
       "args": [
         "-y",
-        "supergateway",
+        "supergateway@latest",
         "--stdio",
-        "npx -y @modelcontextprotocol/server-filesystem /foo/bar/project1",
+        "npx -y @modelcontextprotocol/server-filesystem@latest /foo/bar/project1",
         "--port",
         "8000",
         "--baseUrl",

@@ -3,7 +3,8 @@
     "filesystem-server": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-filesystem",
+        "-y",
+        "@modelcontextprotocol/server-filesystem@latest",
         "/home/user/documents"
       ],
       "cwd": "/home/user/mcp-servers",
@@ -14,7 +15,8 @@
     "github-server": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-github"
+        "-y",
+        "@modelcontextprotocol/server-github@latest"
       ],
       "cwd": "/home/user/mcp-servers",
       "env": {
@@ -24,7 +26,8 @@
     "postgres-server": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-postgres",
+        "-y",
+        "@modelcontextprotocol/server-postgres@latest",
         "postgresql://user:pass@localhost/mydb"
       ],
       "cwd": "/home/user/mcp-servers",
