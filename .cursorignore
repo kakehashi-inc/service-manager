@@ -1,0 +1,33 @@
+# 設定関連
+.env
+.env.*
+!.env.example
+
+# OSやエディタの一時ファイル
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+tmp/
+
+# ローカルデータ
+*.sqlite3
+*.sqlite3-journal
+*.db
+*.db-journal
+
+# 言語固有
+.yarn/
+external_node/
+node_modules/
+public/
+storage/
+!storage/app/
+!storage/logs/
+vendor/
+
+# プロジェクト固有
+Archive/
+docker/
+s3/
+static/
