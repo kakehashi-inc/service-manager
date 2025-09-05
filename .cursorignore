@@ -17,17 +17,7 @@ tmp/
 *.db-journal
 
 # 言語固有
-.yarn/
-external_node/
-node_modules/
-public/
-storage/
-!storage/app/
-!storage/logs/
-vendor/
+__pycache__/
+venv/
 
 # プロジェクト固有
-Archive/
-docker/
-s3/
-static/
