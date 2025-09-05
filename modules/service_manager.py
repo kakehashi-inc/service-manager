@@ -406,6 +406,7 @@ class ServiceManager:
         for name, config in services.items():
             command = config.get("command", "")
             args = config.get("args", [])
+            autorun = config.get("autorun", False)
 
             # pidファイルから状態を確認
             pid = self._load_pid(name)
@@ -417,7 +418,8 @@ class ServiceManager:
                 if pid:
                     self._delete_pid_file(name)
 
-            print(f"  {name:<20} | {status:<12} | {command} {' '.join(args)}")
+            autorun_str = "AUTO" if autorun else ""
+            print(f"  {name:<20} | {status:<12} | {autorun_str:<4} | {command} {' '.join(args)}")
 
     def add_service(self, service_name: str) -> None:
         """サービスを追加"""
@@ -449,6 +451,7 @@ class ServiceManager:
         print(f"  Args: {current_config.get('args', [])}")
         print(f"  Working directory: {current_config.get('cwd', '')}")
         print(f"  Environment variables: {current_config.get('env', {})}")
+        print(f"  Auto startup: {current_config.get('autorun', False)}")
 
         config = self._interactive_service_config(current_config)
         self.config["services"][service_name] = config
@@ -557,6 +560,18 @@ class ServiceManager:
                 if new_env:
                     config["env"] = new_env
 
+        # 自動起動設定
+        current_autorun = config.get("autorun", False)
+        if current_autorun:
+            autorun_input = input("Auto startup enabled. Disable? (y/N): ").strip().lower()
+            if autorun_input == "y":
+                if "autorun" in config:
+                    del config["autorun"]
+        else:
+            autorun_input = input("Enable auto startup? (y/N): ").strip().lower()
+            if autorun_input == "y":
+                config["autorun"] = True
+
         return config
 
     def _interactive_args_config(self, current_args: List[str]) -> List[str]:
@@ -630,3 +645,56 @@ class ServiceManager:
                 env[key] = value
 
         return env
+
+    def enable_service(self, service_name: str) -> None:
+        """サービスを自動起動対象に設定"""
+        if service_name not in self.config.get("services", {}):
+            print(f"エラー: サービス '{service_name}' が設定に見つかりません。")
+            return
+
+        # autorun設定を追加
+        self.config["services"][service_name]["autorun"] = True
+        self._save_config()
+        print(f"サービス '{service_name}' を自動起動対象に設定しました。")
+
+    def disable_service(self, service_name: str) -> None:
+        """サービスを自動起動対象から除外"""
+        if service_name not in self.config.get("services", {}):
+            print(f"エラー: サービス '{service_name}' が設定に見つかりません。")
+            return
+
+        # autorun設定を削除
+        service_config = self.config["services"][service_name]
+        if "autorun" in service_config:
+            del service_config["autorun"]
+            self._save_config()
+            print(f"サービス '{service_name}' を自動起動対象から除外しました。")
+        else:
+            print(f"サービス '{service_name}' は既に自動起動対象ではありません。")
+
+    def auto_start_services(self) -> bool:
+        """自動起動対象のサービスを開始"""
+        services = self.config.get("services", {})
+        if not services:
+            return True
+
+        # autorun=trueのサービスを検索
+        autorun_services = []
+        for name, config in services.items():
+            if config.get("autorun") is True:
+                autorun_services.append(name)
+
+        if not autorun_services:
+            return True
+
+        success = True
+        for service_name in autorun_services:
+            # 既に起動中かチェック
+            existing_pid = self._load_pid(service_name)
+            if existing_pid and self._is_process_running_by_pid(existing_pid):
+                continue
+
+            if not self.start_service(service_name):
+                success = False
+
+        return success

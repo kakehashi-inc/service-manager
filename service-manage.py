@@ -33,6 +33,17 @@ def main():
         if action != "list":
             subparser.add_argument("service_name", help="Service name")
 
+    # 自動起動管理グループ
+    autorun_actions = [
+        ("enable", "Enable service for auto startup"),
+        ("disable", "Disable service from auto startup"),
+        ("auto", "Start all auto-enabled services"),
+    ]
+    for action, desc in autorun_actions:
+        subparser = subparsers.add_parser(action, help=desc)
+        if action != "auto":
+            subparser.add_argument("service_name", help="Service name")
+
     args = parser.parse_args()
 
     if args.config:
@@ -84,6 +95,13 @@ def main():
         manager.modify_service(args.service_name)
     elif args.action == "delete":
         manager.delete_service(args.service_name)
+    elif args.action == "enable":
+        manager.enable_service(args.service_name)
+    elif args.action == "disable":
+        manager.disable_service(args.service_name)
+    elif args.action == "auto":
+        success = manager.auto_start_services()
+        sys.exit(0 if success else 1)
 
     sys.exit(0)
 
